@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --neon-primary: #00ff00;
+            --neon-secondary: #008000;
+            --neon-accent: #00ff00;
+            --dark-bg: #000000;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: white;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .container {
+            padding-top: 2rem;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--neon-primary);
+            box-shadow: 0 0 10px var(--neon-primary);
+        }
+
+        .card-header {
+            background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary));
+            color: white;
+        }
+
+        .table {
+            color: white;
+        }
+
+        .table img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid var(--neon-primary);
+        }
+
+        .btn-action {
+            margin: 0 5px;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-warning {
+            background-color: var(--neon-primary);
+        }
+
+        .btn-danger {
+            background-color: var(--neon-secondary);
+        }
+
+        .modal-content {
+            background-color: var(--dark-bg);
+            border: 1px solid var(--neon-primary);
+            color: white;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--neon-primary);
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--neon-primary);
+        }
+
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-primary);
+            color: white;
+        }
+
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: var(--neon-secondary);
+            color: white;
+            box-shadow: 0 0 5px var(--neon-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2>Panel de Control</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Foto</th>
+                                <th>Nombre</th>
+                                <th>Fecha de Creación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr>
+                                <td>
+                                    {% if usuario.foto_base64 %}
+                                        <img src="{{ usuario.foto_base64 }}" alt="Foto de {{ usuario.nombre }}">
+                                    {% else %}
+                                        <img src="https://via.placeholder.com/50" alt="Sin foto">
+                                    {% endif %}
+                                </td>
+                                <td>{{ usuario.nombre }}</td>
+                                <td>{{ usuario.fecha_creacion.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-action" onclick="editarUsuario('{{ usuario.nombre }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-action" onclick="eliminarUsuario('{{ usuario.nombre }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edición -->
+    <div class="modal fade" id="editarModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editarForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="editNombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="editNombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editContraseña" class="form-label">Nueva Contraseña (opcional)</label>
+                            <input type="password" class="form-control" id="editContraseña">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editFoto" class="form-label">Foto de Perfil</label>
+                            <input type="file" class="form-control" id="editFoto" accept="image/*">
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-primary mb-2" id="activarCamara">Activar Cámara</button>
+                                <button type="button" class="btn btn-success mb-2" id="capturarFoto" style="display: none;">Capturar Foto</button>
+                                <video id="video" style="display: none; width: 100%; margin-bottom: 10px;"></video>
+                                <canvas id="canvas" style="display: none;"></canvas>
+                                <img id="previewFoto" src="" alt="Vista previa" style="max-width: 100px; display: none; border: 2px solid var(--neon-primary); border-radius: 50%;">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarCambios()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let usuarioActual = '';
+        const editarModal = new bootstrap.Modal(document.getElementById('editarModal'));
+
+        function editarUsuario(nombre) {
+            usuarioActual = nombre;
+            document.getElementById('editNombre').value = nombre;
+            document.getElementById('editContraseña').value = '';
+            
+            // Mostrar la imagen actual del usuario
+            const imgElement = document.querySelector(`img[alt="Foto de ${nombre}"]`);
+            if (imgElement) {
+                document.getElementById('previewFoto').src = imgElement.src;
+                document.getElementById('previewFoto').style.display = 'block';
+            } else {
+                document.getElementById('previewFoto').style.display = 'none';
+            }
+            
+            editarModal.show();
+        }
+
+        // Agregar evento para previsualizar la imagen
+        document.getElementById('editFoto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewFoto').src = e.target.result;
+                    document.getElementById('previewFoto').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Variables para la cámara web
+        let stream = null;
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const activarCamaraBtn = document.getElementById('activarCamara');
+        const capturarFotoBtn = document.getElementById('capturarFoto');
+
+        activarCamaraBtn.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                capturarFotoBtn.style.display = 'block';
+                video.play();
+            } catch (err) {
+                console.error('Error al acceder a la cámara:', err);
+                alert('Error al acceder a la cámara');
+            }
+        });
+
+        capturarFotoBtn.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const fotoBase64 = canvas.toDataURL('image/jpeg');
+            document.getElementById('previewFoto').src = fotoBase64;
+            document.getElementById('previewFoto').style.display = 'block';
+            
+            // Detener la cámara
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.style.display = 'none';
+                capturarFotoBtn.style.display = 'none';
+            }
+        });
+
+        function guardarCambios() {
+            const nuevoNombre = document.getElementById('editNombre').value;
+            const nuevaContraseña = document.getElementById('editContraseña').value;
+            const fotoFile = document.getElementById('editFoto').files[0];
+            const previewFoto = document.getElementById('previewFoto');
+
+            if (!nuevoNombre.trim()) {
+                alert('El nombre no puede estar vacío');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('nombre_actual', usuarioActual);
+            formData.append('nombre_nuevo', nuevoNombre);
+            if (nuevaContraseña) {
+                formData.append('contraseña', nuevaContraseña);
+            }
+            if (fotoFile) {
+                if (fotoFile.size > 5 * 1024 * 1024) {
+                    alert('La imagen es demasiado grande. El tamaño máximo es 5MB.');
+                    return;
+                }
+                formData.append('foto', fotoFile);
+            } else if (previewFoto.src && previewFoto.src.startsWith('data:image/')) {
+                formData.append('foto', previewFoto.src);
+            }
+
+            const guardarBtn = document.querySelector('.modal-footer .btn-primary');
+            guardarBtn.disabled = true;
+            guardarBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+
+            fetch(`/usuarios/${encodeURIComponent(usuarioActual)}`, {
+                method: 'PUT',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                const contentType = response.headers.get('content-type');
+                if (!response.ok) {
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'Error al actualizar usuario');
+                        });
+                    }
+                    return response.text().then(text => {
+                        throw new Error('Error en el servidor: ' + text);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Usuario actualizado exitosamente');
+                    editarModal.hide();
+                    location.reload();
+                } else {
+                    throw new Error(data.message || 'Error al actualizar usuario');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al actualizar usuario: ' + error.message);
+            })
+            .finally(() => {
+                guardarBtn.disabled = false;
+                guardarBtn.innerHTML = 'Guardar';
+            });
+        }
+        
+
+        function eliminarUsuario(nombre) {
+            if (confirm(`¿Está seguro de eliminar al usuario ${nombre}?`)) {
+                fetch(`/usuarios/${nombre}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error al eliminar usuario');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al eliminar usuario');
+                });
+            }
+        }
+    </script>
+</body>
+</html>
