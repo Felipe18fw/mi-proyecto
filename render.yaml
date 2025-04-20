@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: sistema-usuario-app
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: MONGO_URI
+        value: "mongodb://felipe:123@ac-ikiois6-shard-00-00.bxchplr.mongodb.net:27017,ac-ikiois6-shard-00-01.bxchplr.mongodb.net:27017,ac-ikiois6-shard-00-02.bxchplr.mongodb.net:27017/?replicaSet=atlas-8159te-shard-0&ssl=true&authSource=admin&retryWrites=true&w=majority&appName=proyecto"
+      - key: GOOGLE_CLIENT_ID
+        value: "1063060969819-b7glmg1vn5r9pmopdvmqec2ba32evs6b.apps.googleusercontent.com"
+      - key: GOOGLE_CLIENT_SECRET
+        value: "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"
+      - key: SECRET_KEY
+        value: "tu_clave_secreta_aqui"
+    healthCheckPath: /
+    autoDeploy: true
